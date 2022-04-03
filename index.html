@@ -1,0 +1,205 @@
+<head>
+    <title>Geração de formulas </title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+    <!-- Default theme -->
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
+    <!-- Semantic UI theme -->
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/semantic.min.css"/>
+    <!-- Bootstrap theme -->
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/bootstrap.min.css"/>
+
+</head>
+<style>
+    body{
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 18px;
+        background-color: #66FFD9;
+        color: black;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    body>h1{
+        color: #453186;
+    }
+
+    .form{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        margin-top: 1%;
+        border-radius: 17px;
+        padding: 3% 2% 5% 2%;
+        background-color: white;
+        box-shadow: 8px 12px 8px rgba(0,0,0,0.5);
+    }
+
+    .dia, .arquivo, .quantidade{
+        font-size: 24px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: row;
+        padding-bottom: 20px;
+    }
+    
+    .dia select{
+        margin-left: 20px;
+        font-size: 20px;
+        font-weight: 500;
+    }
+
+    .quantidade input{
+        margin-left: 20px;
+        font-size: 20px;
+        font-weight: 500;
+    }
+
+    .arquivo .btn{
+        margin-left: 20px;
+    }
+
+    .upload-btn-wrapper {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn {
+        border: 2px solid black;
+        color: #323233;
+        background-color: white;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .btn:hover {
+        cursor: pointer;
+        transition-duration: 0.3s;
+        color: #453186;
+        background-color: azure;
+    }
+    input[type=file]:hover {
+        cursor: pointer;
+        transition-duration: 0.3s;
+        color: #453186;
+        background-color: azure;
+    }
+
+    .upload-btn-wrapper input[type=file] {
+        font-size: 100px;
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+    }
+</style>
+<body>
+    <h1>Conversão de resultados Gabaritech para Meu Bernoulli</h1><br/>
+    <img src="logos.png" alt="Logos" width="45%" height="25%">
+    <div class="form">        
+        <div class="dia">
+            <label>Dia de prova: </label>
+            <select name="" id="dia">                
+                <option value="IFRN">1º</option>
+                <option value="ENEM">2º</option>
+            </select>
+        </div>
+        <div class="arquivo">
+            <label>Arquivo de gabarito: </label>
+            <div class="upload-btn-wrapper">
+                <button class="btn" id="btnFile">Escolher gabarito</button>
+                <input type="file" name="myfile" id="arquivo" accept=".txt"/>
+                <br/>
+            </div>
+        </div>        
+
+        <div class="acao">
+            <input type="button" class="btn" value="Converter" id="ok">
+        </div>        
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.js"></script>
+    <!-- JavaScript -->
+    <script src="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js" integrity="sha512-csNcFYJniKjJxRWRV1R7fvnXrycHP6qDR21mgz1ZP55xY5d+aHLfo9/FcGDQLfn2IfngbAHd8LdfsagcCqgTcQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.js" integrity="sha512-UNbeFrHORGTzMn3HTt00fvdojBYHLPxJbLChmtoyDwB6P9hX5mah3kMKm0HHNx/EvSPJt14b+SlD8xhuZ4w9Lg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+
+ 
+    <script>
+        var myFile;
+        var conteudo="";
+        $("input[type='file']").change( function(e) {
+            $("#btnFile").html(e.target.files[0].name);
+
+        });
+        $("#ok").click(function() {                
+                myFile = $('#arquivo').prop('files');
+                var e = $("#arquivo");
+                if(myFile.length > 0){
+                    const reader = new FileReader();
+                    reader.onload = function fileReadCompleted() {
+                        // when the reader is done, the content is in reader.result.
+                        conteudo=reader.result;
+                        const linhas = conteudo.split('\n');                
+                        gerarFormulas(linhas);                
+                    }
+                    reader.readAsText(myFile[0]);
+                }else{
+                    alertify.alert('Arquivo não selecionado', 'Selecione o gabarito do simulado');
+                }        
+    }
+
+        );
+
+      function gerarFormulas(linhas){
+        var diaSelecionado = $("#dia option:selected").text();
+            
+        let formulas=[];
+        let resultado = "";
+        resultado+= "RA;Nome;Lingua Estrangeira (ING ou ESP);";
+                
+        if(diaSelecionado === '1º'){
+            for(let i = 1; i <= 90; i++){
+                resultado+='q'+i+';';
+            }
+        }else{
+            for(let i = 91; i <= 180; i++){
+                resultado+='q'+i+';';
+            }
+        }
+        resultado+='\n'
+        
+                        linhas.forEach(linha => {
+                                linha = linha.slice(4);                                
+                                linha = linha.replaceAll(',',';');
+                                resultado+=linha+"\n";
+                                formulas.push(resultado);
+                            }
+                        );
+                        console.log(resultado);
+
+                        var link = document.createElement("a");
+                        link.setAttribute("target","_blank");
+                        if(Blob !== undefined) {
+                            var blob = new Blob([resultado], {type: "text/csv"});
+                            link.setAttribute("href", URL.createObjectURL(blob));
+                        } else {
+                            link.setAttribute("href","data:text/csv," + encodeURIComponent(resultado));
+                        }
+                        link.setAttribute("download","arquivoConvertido");
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        /* Alert the copied text */
+                        alertify.alert('Sucesso', 'Gabarito convertido com sucesso');                    
+      }
+
+    </script>
+</body>
