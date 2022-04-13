@@ -121,6 +121,14 @@
             </div>
         </div>        
 
+        <div class="arquivo">
+            <label>Arquivo de modelo: </label>
+            <div class="upload-btn-wrapper">
+                <button class="btn" id="btnFile2">Escolher modelo</button>
+                <input type="file" name="myfileModel" id="model" accept=".xlsx"/>
+                <br/>
+            </div>
+        </div>        
         <div class="acao">
             <input type="button" class="btn" value="Converter" id="ok">
         </div>        
@@ -128,32 +136,142 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.js"></script>
     <!-- JavaScript -->
     <script src="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js" integrity="sha512-csNcFYJniKjJxRWRV1R7fvnXrycHP6qDR21mgz1ZP55xY5d+aHLfo9/FcGDQLfn2IfngbAHd8LdfsagcCqgTcQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.js" integrity="sha512-UNbeFrHORGTzMn3HTt00fvdojBYHLPxJbLChmtoyDwB6P9hX5mah3kMKm0HHNx/EvSPJt14b+SlD8xhuZ4w9Lg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.13.5/jszip.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.13.5/xlsx.full.min.js"></script>
 
-
- 
     <script>
-        var myFile;
+        var myFile, myFileModel;
         var conteudo="";
-        $("input[type='file']").change( function(e) {
-            $("#btnFile").html(e.target.files[0].name);
-
+        $("input#arquivo").change( function(e) {
+            $("#btnFile").html(e.target.files[0].name);           
         });
+
+        $("input#model").change( function(e) {
+            $("#btnFile2").html(e.target.files[0].name);     
+            //UploadProcess();      
+        });
+
+        function UploadProcess(linhasGabaritech) {
+        //Reference the FileUpload element.
+        var fileUpload = document.getElementById("model");
+ 
+        //Validate whether File is valid Excel file.
+            if (typeof (FileReader) != "undefined") {
+                var reader = new FileReader();
+ 
+                //For Browsers other than IE.
+                if (reader.readAsBinaryString) {
+                    reader.onload = function (e) {
+                        console.log(e.target.result)
+                        GetTableFromExcel(linhasGabaritech, e.target.result);
+                    };
+                    reader.readAsBinaryString(fileUpload.files[0]);
+                } else {
+                    //For IE Browser.
+                    reader.onload = function (e) {
+                        var data = "";
+                        var bytes = new Uint8Array(e.target.result);
+                        for (var i = 0; i < bytes.byteLength; i++) {
+                            data += String.fromCharCode(bytes[i]);
+                        }
+                        console.log(data)
+                       //// GetTableFromExcel(data);
+                    };
+                    reader.readAsArrayBuffer(fileUpload.files[0]);
+                }
+            } else {
+                alert("This browser does not support HTML5.");
+            }
+    };
+
+
+    function GetTableFromExcel(linhasGabaritech, data) {
+        var diaSelecionado = $("#dia option:selected").text();
+        //Read the Excel File data in binary
+        //var cfb = XLSX.read(data, {type: 'binary'});
+        var workbook = XLSX.read(data, {type: 'binary'});
+ 
+        //get the name of First Sheet.
+        var Sheet = workbook.SheetNames[0];
+ 
+        //Read all rows from First Sheet into an JSON array.
+        var sCSV = XLS.utils.make_csv(workbook.Sheets[Sheet]);   
+        const linhasTabelaFinal = sCSV.split('\n');
+        let resultado = linhasTabelaFinal[0];       
+        /*linhasTabelaFinal.forEach((linha, i) => {
+            if(i != 0){
+                let colunas = linha.split(',');
+                linha = colunas[0]+","+colunas+","+linhasGabaritech;                          
+                resultado+=linha+"\n";
+            }
+        });   */
+         
+        var oJS = XLS.utils.sheet_to_json(workbook.Sheets[Sheet]);   
+
+
+        linhasGabaritech.forEach(linha => {
+                linha = linha.slice(2);      
+                linha = linha.replaceAll(',',';');                          
+                let colunas = linha.split(';');
+                const index = oJS.findIndex(el => el.RA == colunas[1]);
+                const line = oJS.find(el => el.RA == colunas[1]);
+                if(line != undefined){
+                    line['Lingua Estrangeira (ING ou ESP)'] = colunas[0] === '1' ? 'ING' : 'ESP';                  
+                    if(diaSelecionado === '1º'){
+                        for(let i=1; i<= 90; i++){
+                            line['q'+i]=colunas[i+3];
+                        }
+                    }else{                        
+                        for(let i=91; i<= 180; i++){
+                            line['q'+i]=colunas[i-90+3];
+                        }                    
+                    }
+                }
+                oJS[index]= line;                
+                oJS[index] = oJS.find(el => el.RA == colunas[1]);          
+            }
+        );        
+        var Heading = [
+        "RA", "Nome", "Lingua Estrangeira (ING ou ESP)",
+        ];  
+        if(diaSelecionado === '1º'){
+            for(let i = 1; i <= 90; i++){
+                Heading.push('q'+i);
+            }
+        }else{
+            for(let i = 91; i <= 180; i++){
+                Heading.push('q'+i);
+            }
+        }
+        const ws = XLSX.utils.json_to_sheet(oJS, {header: Heading});
+        const workbook2 = XLSX.utils.book_new();
+        const fileName =  'gabarito_simulado_bernoulli.xlsx';
+        XLSX.utils.book_append_sheet(workbook2, ws, "gabarito");
+        alertify.alert('Sucesso', 'Gabarito convertido com sucesso');        
+        XLSX.writeFile(workbook2, fileName);
+    }
+
         $("#ok").click(function() {                
                 myFile = $('#arquivo').prop('files');
                 var e = $("#arquivo");
-                if(myFile.length > 0){
+                
+                myFileModel = $('#model').prop('files');
+                var e2 = $("#arquivo");
+                
+                
+
+                if(myFile.length > 0 && myFileModel.length > 0){
                     const reader = new FileReader();
                     reader.onload = function fileReadCompleted() {
                         // when the reader is done, the content is in reader.result.
                         conteudo=reader.result;
-                        const linhas = conteudo.split('\n');                
-                        gerarFormulas(linhas);                
+                        const linhas = conteudo.split('\n');    
+                        UploadProcess(linhas);                  
+                        //gerarFormulas(linhas);                
                     }
                     reader.readAsText(myFile[0]);
                 }else{
-                    alertify.alert('Arquivo não selecionado', 'Selecione o gabarito do simulado');
+                    alertify.alert('Arquivo não selecionado', 'Selecione o gabarito e o modelo do simulado');
                 }        
     }
 
